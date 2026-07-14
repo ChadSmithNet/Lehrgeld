@@ -1,0 +1,1 @@
+ALTER TABLE `preferences` ADD `first_invoice_number` text DEFAULT '' NOT NULL;
