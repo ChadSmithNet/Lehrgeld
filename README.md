@@ -149,6 +149,51 @@ Browser <http://localhost:3000>.
 
 Drücken Sie im Terminal `Strg + C` (macOS: `Ctrl + C`).
 
+## Ohne Terminal starten
+
+Nach der einmaligen Installation lässt sich die App per Doppelklick starten —
+ganz ohne Terminal. Im Projektordner liegen dafür fertige Starter:
+
+- **macOS:** `Lehrgeld starten.command` im Finder doppelklicken. Beim allerersten
+  Mal fragt macOS nach, ob die Datei geöffnet werden darf: Rechtsklick →
+  „Öffnen" → „Öffnen" bestätigt das einmalig.
+- **Windows:** `Lehrgeld starten.bat` im Datei-Explorer doppelklicken.
+- **Linux:** `Lehrgeld starten.sh` einmalig ausführbar machen
+  (`chmod +x "Lehrgeld starten.sh"`), dann im Dateimanager doppelklicken (ggf.
+  „Ausführen" wählen) oder im Terminal starten.
+
+Der Starter kümmert sich beim ersten Lauf selbst um `npm install` und
+`npm run build`, öffnet danach automatisch den Browser unter
+<http://localhost:3000> und startet die App im Produktivmodus.
+
+Es öffnet sich ein kleines Konsolenfenster — **dieses bitte offen lassen,
+solange Sie mit der App arbeiten.** Es ist der laufende Server. Zum **Beenden**
+schließen Sie das Fenster oder drücken darin `Strg + C`.
+
+> **Hinweis nach einem Update:** Der Starter baut die App nur, wenn noch kein
+> `.next`-Ordner vorhanden ist. Nach einer neuen Version einmal `npm run build`
+> ausführen (oder den `.next`-Ordner löschen), damit die Änderungen wirksam
+> werden.
+
+### Optional: Startmenü-/Desktop-Eintrag unter Linux
+
+Wer unter Linux einen Eintrag im Anwendungsmenü möchte, legt eine `.desktop`-
+Datei an (z. B. `~/.local/share/applications/lehrgeld.desktop`) und trägt den
+**absoluten Pfad** zum Projektordner ein:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Lehrgeld
+Comment=Abrechnung für Sprachlehrer:innen
+Exec=bash -c 'cd "/PFAD/ZU/Lehrgeld" && "./Lehrgeld starten.sh"'
+Path=/PFAD/ZU/Lehrgeld
+Terminal=true
+Categories=Office;
+```
+
+`/PFAD/ZU/Lehrgeld` durch den tatsächlichen Speicherort ersetzen.
+
 ## Produktivbetrieb
 
 Statt des Entwicklungsmodus (`npm run dev`) können Sie die App optimiert
