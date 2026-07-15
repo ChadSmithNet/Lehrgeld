@@ -2,14 +2,7 @@ import { createElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import {
-  charges,
-  customers,
-  invoices,
-  items,
-  preferences,
-  units,
-} from "@/lib/db/schema";
+import { charges, invoices, items, preferences, units } from "@/lib/db/schema";
 import { InvoicePdf, type InvoiceLine } from "@/lib/pdf/invoice-pdf";
 
 export const dynamic = "force-dynamic";
@@ -30,11 +23,6 @@ export async function GET(
     return new Response("Rechnung nicht gefunden", { status: 404 });
   }
 
-  const customer = db
-    .select()
-    .from(customers)
-    .where(eq(customers.id, invoice.customerId))
-    .get()!;
   const prefs = db.select().from(preferences).where(eq(preferences.id, 1)).get()!;
 
   const lines: InvoiceLine[] = db
@@ -52,13 +40,14 @@ export async function GET(
     .innerJoin(items, eq(charges.itemId, items.id))
     .innerJoin(units, eq(items.unitId, units.id))
     .where(eq(charges.invoiceId, invoiceId))
-    .orderBy(asc(charges.date), asc(charges.id))
+    // Date, then courses before expenses ('course' < 'expense'), then entry
+    // order.
+    .orderBy(asc(charges.date), asc(items.type), asc(charges.id))
     .all();
 
   const buffer = await renderToBuffer(
     createElement(InvoicePdf, {
       invoice,
-      customer,
       prefs,
       lines,
     }) as React.ReactElement<DocumentProps>

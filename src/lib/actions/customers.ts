@@ -9,6 +9,7 @@ import type { ActionResult } from "./types";
 
 const customerSchema = z.object({
   name: z.string().trim().min(1, "Name darf nicht leer sein"),
+  legalName: z.string().trim().min(1, "Rechtlicher Name darf nicht leer sein"),
   addressee: z.string().trim(),
   address: z.string().trim(),
   email: z.string().trim().email("Ungültige E-Mail-Adresse").or(z.literal("")),

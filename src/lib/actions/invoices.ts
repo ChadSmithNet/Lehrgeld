@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { charges, invoices, preferences } from "@/lib/db/schema";
+import { charges, customers, invoices, preferences } from "@/lib/db/schema";
 import { monthRange } from "@/lib/dates";
 import { parseInvoiceNumber } from "@/lib/format";
 import type { ActionResult } from "./types";
@@ -73,9 +73,29 @@ export async function generateInvoice(
       const totalCents = open.reduce((sum, c) => sum + c.totalCents, 0);
       const issueDate = new Date().toISOString().slice(0, 10);
 
+      // Freeze the recipient onto the invoice so later customer edits never
+      // change this invoice or its PDF.
+      const customer = tx
+        .select()
+        .from(customers)
+        .where(eq(customers.id, customerId))
+        .get();
+      if (!customer) throw new Error("Kunde nicht gefunden.");
+
       const inserted = tx
         .insert(invoices)
-        .values({ customerId, year, month, number, issueDate, totalCents })
+        .values({
+          customerId,
+          year,
+          month,
+          number,
+          issueDate,
+          totalCents,
+          customerName: customer.name,
+          customerLegalName: customer.legalName,
+          customerAddressee: customer.addressee,
+          customerAddress: customer.address,
+        })
         .returning({ id: invoices.id })
         .get();
 
