@@ -21,6 +21,9 @@ export const preferences = sqliteTable("preferences", {
 export const customers = sqliteTable("customers", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
+  // Full legal/registered name for invoices; the display "name" may be shorter.
+  // Required in the UI; the DB default only covers the migration backfill.
+  legalName: text("legal_name").notNull().default(""),
   addressee: text("addressee").notNull().default(""),
   address: text("address").notNull().default(""),
   email: text("email").notNull().default(""),
@@ -38,6 +41,8 @@ export const items = sqliteTable("items", {
     .references(() => customers.id),
   name: text("name").notNull(),
   description: text("description").notNull().default(""),
+  // Internal note shown when picking the item for a charge; never printed.
+  note: text("note").notNull().default(""),
   type: text("type", { enum: ["course", "expense"] }).notNull(),
   rateCents: integer("rate_cents").notNull(),
   unitId: integer("unit_id")
@@ -55,6 +60,12 @@ export const invoices = sqliteTable("invoices", {
   number: text("number").notNull().unique(),
   issueDate: text("issue_date").notNull(),
   totalCents: integer("total_cents").notNull(),
+  // Recipient frozen at creation time so later customer edits never change
+  // historical invoices. The PDF renders from these, not the live customer.
+  customerName: text("customer_name").notNull().default(""),
+  customerLegalName: text("customer_legal_name").notNull().default(""),
+  customerAddressee: text("customer_addressee").notNull().default(""),
+  customerAddress: text("customer_address").notNull().default(""),
 });
 
 export const charges = sqliteTable("charges", {

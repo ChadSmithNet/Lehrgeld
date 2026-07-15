@@ -9,7 +9,14 @@ import {
   updateCharge,
 } from "@/lib/actions/charges";
 import type { Customer, Item, Unit } from "@/lib/db/schema";
-import { formatCents, formatDate, formatQuantity, parseQuantity } from "@/lib/format";
+import {
+  formatCents,
+  formatDate,
+  formatMonth,
+  formatQuantity,
+  parseQuantity,
+  parseRateToCents,
+} from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,10 +66,15 @@ type ChargeForm = {
   customerId: string | null;
   itemId: string | null;
   quantity: string;
+  rate: string;
 };
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function formatRate(cents: number): string {
+  return (cents / 100).toFixed(2).replace(".", ",");
 }
 
 export function ChargesClient({
@@ -85,6 +97,7 @@ export function ChargesClient({
     customerId: null,
     itemId: null,
     quantity: "",
+    rate: "",
   });
   const [customerFilter, setCustomerFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
@@ -111,22 +124,31 @@ export function ChargesClient({
   );
   const selectedItem = items.find((i) => i.id === Number(form.itemId)) ?? null;
 
-  // Live preview: existing charges keep their snapshot rate; only a new
-  // booking or a changed item uses the item's current rate.
-  const previewRate =
-    editing && selectedItem && editing.itemId === selectedItem.id
-      ? editing.rateCents
-      : selectedItem?.rateCents ?? null;
+  // Live preview from the form's own rate, which defaults to the item's rate
+  // but can be overridden.
+  const previewRateCents = parseRateToCents(form.rate);
   const previewQuantity = parseQuantity(form.quantity);
   const previewTotal =
-    previewRate !== null && !Number.isNaN(previewQuantity) && previewQuantity > 0
-      ? Math.round(previewRate * previewQuantity)
+    !Number.isNaN(previewRateCents) &&
+    previewRateCents >= 0 &&
+    !Number.isNaN(previewQuantity) &&
+    previewQuantity > 0
+      ? Math.round(previewRateCents * previewQuantity)
       : null;
 
   function set<K extends keyof ChargeForm>(key: K, value: ChargeForm[K]) {
     setForm((f) => {
       const next = { ...f, [key]: value };
-      if (key === "customerId") next.itemId = null;
+      if (key === "customerId") {
+        next.itemId = null;
+        next.rate = "";
+      }
+      // Picking or switching the item prefills the rate with that item's
+      // current rate; the user can then override it.
+      if (key === "itemId") {
+        const item = items.find((i) => i.id === Number(value));
+        next.rate = item ? formatRate(item.rateCents) : "";
+      }
       return next;
     });
   }
@@ -138,6 +160,7 @@ export function ChargesClient({
       customerId: customerFilter !== "all" ? customerFilter : null,
       itemId: null,
       quantity: "",
+      rate: "",
     });
     setDialogOpen(true);
   }
@@ -149,6 +172,7 @@ export function ChargesClient({
       customerId: String(row.customerId),
       itemId: String(row.itemId),
       quantity: formatQuantity(row.quantity),
+      rate: formatRate(row.rateCents),
     });
     setDialogOpen(true);
   }
@@ -160,11 +184,17 @@ export function ChargesClient({
       toast.error("Bitte eine gültige Anzahl größer 0 eingeben.");
       return;
     }
+    const rateCents = parseRateToCents(form.rate);
+    if (Number.isNaN(rateCents) || rateCents < 0) {
+      toast.error("Bitte einen gültigen Satz eingeben (z. B. 45,00).");
+      return;
+    }
     const input = {
       date: form.date,
       customerId: Number(form.customerId) || 0,
       itemId: Number(form.itemId) || 0,
       quantity,
+      rateCents,
     };
     startTransition(async () => {
       const result = editing
@@ -261,15 +291,24 @@ export function ChargesClient({
                   <SelectContent>
                     {customerItems.map((i) => (
                       <SelectItem key={i.id} value={String(i.id)}>
-                        {i.type === "course" ? "Kurs" : "Auslage"}: {i.name} (
-                        {formatCents(i.rateCents, currency)} / {unitName.get(i.unitId)}
-                        )
+                        <div className="flex flex-col">
+                          <span>
+                            {i.type === "course" ? "Kurs" : "Auslage"}: {i.name} (
+                            {formatCents(i.rateCents, currency)} /{" "}
+                            {unitName.get(i.unitId)})
+                          </span>
+                          {i.note ? (
+                            <span className="text-xs text-muted-foreground whitespace-normal">
+                              {i.note}
+                            </span>
+                          ) : null}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="ch-qty">
                     Anzahl{selectedItem ? ` (${unitName.get(selectedItem.unitId)})` : ""}
@@ -280,6 +319,17 @@ export function ChargesClient({
                     onChange={(e) => set("quantity", e.target.value)}
                     placeholder="z. B. 1,5"
                     inputMode="decimal"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ch-rate">Satz ({currency})</Label>
+                  <Input
+                    id="ch-rate"
+                    value={form.rate}
+                    onChange={(e) => set("rate", e.target.value)}
+                    placeholder="45,00"
+                    inputMode="decimal"
+                    disabled={!form.itemId}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -328,18 +378,18 @@ export function ChargesClient({
               { value: "all", label: "Alle Monate" },
               ...months.map((m) => ({
                 value: m,
-                label: `${m.slice(5)}/${m.slice(0, 4)}`,
+                label: formatMonth(Number(m.slice(0, 4)), Number(m.slice(5, 7))),
               })),
             ]}
           >
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Alle Monate</SelectItem>
               {months.map((m) => (
                 <SelectItem key={m} value={m}>
-                  {m.slice(5)}/{m.slice(0, 4)}
+                  {formatMonth(Number(m.slice(0, 4)), Number(m.slice(5, 7)))}
                 </SelectItem>
               ))}
             </SelectContent>

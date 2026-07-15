@@ -16,14 +16,15 @@ export default function RechnungenPage() {
     .select({
       id: invoices.id,
       number: invoices.number,
-      customerName: customers.name,
+      // The frozen recipient name, so the list matches the invoice PDF even
+      // after the customer is later renamed.
+      customerName: invoices.customerName,
       year: invoices.year,
       month: invoices.month,
       issueDate: invoices.issueDate,
       totalCents: invoices.totalCents,
     })
     .from(invoices)
-    .innerJoin(customers, eq(invoices.customerId, customers.id))
     .orderBy(desc(invoices.number))
     .all();
 

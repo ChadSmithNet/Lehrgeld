@@ -5,7 +5,7 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import type { Customer, Invoice, Preferences } from "@/lib/db/schema";
+import type { Invoice, Preferences } from "@/lib/db/schema";
 import { formatCents, formatDate, formatMonth, formatQuantity } from "@/lib/format";
 
 export type InvoiceLine = {
@@ -21,7 +21,6 @@ export type InvoiceLine = {
 
 export type InvoicePdfData = {
   invoice: Invoice;
-  customer: Customer;
   prefs: Preferences;
   lines: InvoiceLine[];
 };
@@ -92,7 +91,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export function InvoicePdf({ invoice, customer, prefs, lines }: InvoicePdfData) {
+export function InvoicePdf({ invoice, prefs, lines }: InvoicePdfData) {
   const currency = prefs.currency;
   const senderShort = [prefs.businessName || prefs.name, prefs.address]
     .filter(Boolean)
@@ -116,9 +115,11 @@ export function InvoicePdf({ invoice, customer, prefs, lines }: InvoicePdfData) 
 
         <View style={styles.headerRow}>
           <View style={styles.recipient}>
-            <Text>{customer.name}</Text>
-            {customer.addressee ? <Text>{customer.addressee}</Text> : null}
-            {customer.address
+            <Text>{invoice.customerLegalName}</Text>
+            {invoice.customerAddressee ? (
+              <Text>{invoice.customerAddressee}</Text>
+            ) : null}
+            {invoice.customerAddress
               .split("\n")
               .filter(Boolean)
               .map((line, i) => (

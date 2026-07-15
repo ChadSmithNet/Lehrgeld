@@ -30,7 +30,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const EMPTY: CustomerInput = { name: "", addressee: "", address: "", email: "" };
+const EMPTY: CustomerInput = {
+  name: "",
+  legalName: "",
+  addressee: "",
+  address: "",
+  email: "",
+};
 
 export function CustomersClient({ customers }: { customers: Customer[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -52,6 +58,7 @@ export function CustomersClient({ customers }: { customers: Customer[] }) {
     setEditing(customer);
     setForm({
       name: customer.name,
+      legalName: customer.legalName,
       addressee: customer.addressee,
       address: customer.address,
       email: customer.email,
@@ -102,8 +109,17 @@ export function CustomersClient({ customers }: { customers: Customer[] }) {
                   id="c-name"
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
-                  placeholder="z. B. Sprachschule Müller GmbH"
+                  placeholder="z. B. Sprachschule Müller"
                   autoFocus
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="c-legal-name">Rechtlicher Name</Label>
+                <Input
+                  id="c-legal-name"
+                  value={form.legalName}
+                  onChange={(e) => set("legalName", e.target.value)}
+                  placeholder="z. B. Sprachschule Müller GmbH"
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -151,6 +167,7 @@ export function CustomersClient({ customers }: { customers: Customer[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Rechtlicher Name</TableHead>
               <TableHead>Adressat</TableHead>
               <TableHead>Anschrift</TableHead>
               <TableHead>E-Mail</TableHead>
@@ -161,6 +178,7 @@ export function CustomersClient({ customers }: { customers: Customer[] }) {
             {customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-medium">{customer.name}</TableCell>
+                <TableCell>{customer.legalName}</TableCell>
                 <TableCell>{customer.addressee}</TableCell>
                 <TableCell className="whitespace-pre-line">
                   {customer.address}

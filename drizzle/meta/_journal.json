@@ -15,6 +15,13 @@
       "when": 1784027869369,
       "tag": "0001_first-invoice-number",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784147765322,
+      "tag": "0002_v2_legalname_note_snapshot",
+      "breakpoints": true
     }
   ]
 }

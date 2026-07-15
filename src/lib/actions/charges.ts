@@ -17,6 +17,13 @@ const chargeSchema = z.object({
     .number()
     .positive("Anzahl muss größer als 0 sein")
     .refine((v) => Number.isFinite(v), "Ungültige Anzahl"),
+  // The rate is editable per booking and defaults to the item's current rate;
+  // a booking's rate is independent of later item rate changes. Zero is allowed.
+  rateCents: z
+    .number()
+    .int()
+    .nonnegative("Satz darf nicht negativ sein")
+    .refine((v) => !Number.isNaN(v), "Ungültiger Satz"),
 });
 
 export type ChargeInput = z.infer<typeof chargeSchema>;
@@ -32,15 +39,16 @@ function loadItemForCustomer(itemId: number, customerId: number) {
 export async function createCharge(input: ChargeInput): Promise<ActionResult> {
   const parsed = chargeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
-  const { date, customerId, itemId, quantity } = parsed.data;
+  const { date, customerId, itemId, quantity, rateCents } = parsed.data;
 
   const item = loadItemForCustomer(itemId, customerId);
   if (!item) {
     return { ok: false, error: "Diese Leistung ist für den Kunden nicht definiert." };
   }
 
-  // Snapshot the current rate so later rate changes never affect this charge.
-  const rateCents = item.rateCents;
+  // The rate is taken from the form (it defaults to the item's current rate but
+  // may be overridden) and stored on the charge, so later item rate changes
+  // never affect this booking.
   db.insert(charges)
     .values({
       date,
@@ -61,7 +69,7 @@ export async function updateCharge(
 ): Promise<ActionResult> {
   const parsed = chargeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
-  const { date, customerId, itemId, quantity } = parsed.data;
+  const { date, customerId, itemId, quantity, rateCents } = parsed.data;
 
   const existing = db.select().from(charges).where(eq(charges.id, id)).get();
   if (!existing) return { ok: false, error: "Buchung nicht gefunden." };
@@ -77,9 +85,7 @@ export async function updateCharge(
     return { ok: false, error: "Diese Leistung ist für den Kunden nicht definiert." };
   }
 
-  // Keep the original rate snapshot unless the booking is moved to a
-  // different item — then the new item's current rate applies.
-  const rateCents = existing.itemId === itemId ? existing.rateCents : item.rateCents;
+  // The rate comes from the form, so an edit can adjust it directly.
   db.update(charges)
     .set({
       date,

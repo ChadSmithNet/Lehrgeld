@@ -11,6 +11,7 @@ const itemSchema = z.object({
   customerId: z.number().int().positive("Bitte einen Kunden wählen"),
   name: z.string().trim().min(1, "Name darf nicht leer sein"),
   description: z.string().trim(),
+  note: z.string().trim(),
   type: z.enum(["course", "expense"]),
   rateCents: z
     .number()

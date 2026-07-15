@@ -38,6 +38,7 @@ type ItemForm = {
   customerId: string | null;
   name: string;
   description: string;
+  note: string;
   type: "course" | "expense";
   rate: string;
   unitId: string | null;
@@ -47,6 +48,7 @@ const EMPTY: ItemForm = {
   customerId: null,
   name: "",
   description: "",
+  note: "",
   type: "course",
   rate: "",
   unitId: null,
@@ -102,6 +104,7 @@ export function ItemsClient({
       customerId: String(item.customerId),
       name: item.name,
       description: item.description,
+      note: item.note,
       type: item.type,
       rate: (item.rateCents / 100).toFixed(2).replace(".", ","),
       unitId: String(item.unitId),
@@ -120,6 +123,7 @@ export function ItemsClient({
       customerId: Number(form.customerId) || 0,
       name: form.name,
       description: form.description,
+      note: form.note,
       type: form.type,
       rateCents,
       unitId: Number(form.unitId) || 0,
@@ -218,6 +222,16 @@ export function ItemsClient({
                   rows={2}
                   value={form.description}
                   onChange={(e) => set("description", e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="i-note">Notiz</Label>
+                <Textarea
+                  id="i-note"
+                  rows={2}
+                  value={form.note}
+                  onChange={(e) => set("note", e.target.value)}
+                  placeholder="Interne Notiz – erscheint bei der Buchung, nicht auf der Rechnung"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
